@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>OpenWrt 状态监控 - Argon Edition</title>
+  <meta name="description" content="极简轻量、高性能的 OpenWrt 系统状态与硬件监控移动端应用，基于 Argon 质感主题。">
+  <meta name="theme-color" content="#5e72e4">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="app-container" id="app">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand-wrapper">
+        <img src="icon.svg" alt="Argon Logo" class="app-logo">
+        <div>
+          <h1 class="brand-title">OpenWrt Status</h1>
+          <div class="brand-subtitle">
+            <span class="status-dot connecting" id="statusDot"></span>
+            <span id="statusText">正在连接路由器...</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="refreshBtn" title="立刻刷新" aria-label="立刻刷新">
+          <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+        </button>
+        <button class="icon-btn" id="openSettingsBtn" title="连接设置" aria-label="连接设置">
+          <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main id="mainView">
+      <!-- 1. 监控独立视图 (Dashboard View) -->
+      <div id="viewDashboard" class="tab-view active">
+        <!-- Device Hero Card -->
+        <section class="hero-card" id="heroCard">
+          <div class="hero-top">
+            <div>
+              <span class="device-badge" id="cpuArchBadge">ARMv8 4-Core</span>
+              <h2 class="device-name" id="deviceHostName">ZXHNF7015MV3</h2>
+            </div>
+            <span class="badge" id="pingBadge" style="font-size:11px;color:#2dce89;background:rgba(45,206,137,0.15);padding:4px 8px;border-radius:12px;">延时: -- ms</span>
+          </div>
+          <div class="hero-stats-grid">
+            <div class="hero-stat-item">
+              <span class="hero-stat-label">运行时间</span>
+              <span class="hero-stat-value" id="uptimeText">--</span>
+            </div>
+            <div class="hero-stat-item">
+              <span class="hero-stat-label">系统平均负载</span>
+              <span class="hero-stat-value" id="loadAvgText">0.00 / 0.00 / 0.00</span>
+            </div>
+            <div class="hero-stat-item">
+              <span class="hero-stat-label">在线客户端</span>
+              <span class="hero-stat-value" id="clientCountBadge">-- 台</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Grid Cards: CPU, Memory, Thermal -->
+        <div class="card-grid">
+          <!-- CPU Status Card -->
+          <section class="glass-card full-width" id="cpuCard">
+            <div class="card-header">
+              <span class="card-label">
+                <svg viewBox="0 0 24 24"><path d="M5 3v2h2V3h2v2h2V3h2v2h2V3h2v2h2v2h2v2h-2v2h2v2h-2v2h2v2h-2v2h-2v-2h-2v2h-2v-2h-2v2h-2v-2H7v2H5v-2H3v-2h2v-2H3v-2h2v-2H3V9h2V7H3V5h2V3zm2 4v10h10V7H7zm2 2h6v6H9V9z"/></svg>
+                CPU 处理器
+              </span>
+              <span class="card-desc" id="cpuModelText">ARMv8 Processor</span>
+            </div>
+            <div class="card-value-lg">
+              <span id="cpuAvgFreq">--</span> <span class="card-unit">MHz</span>
+            </div>
+            <!-- Core Frequency list -->
+            <div class="cpu-cores-list" id="cpuCoresContainer">
+              <!-- Rendered by JS -->
+            </div>
+          </section>
+
+          <!-- Memory Card -->
+          <section class="glass-card" id="memCard">
+            <div class="card-header">
+              <span class="card-label">
+                <svg viewBox="0 0 24 24"><path d="M2 7v10h20V7H2zm18 8H4V9h16v6zM6 11h2v2H6zm3 0h2v2H9zm3 0h2v2h-2zm3 0h2v2h-2z"/></svg>
+                物理内存
+              </span>
+            </div>
+            <div class="card-value-lg">
+              <span id="memUsagePercent">--</span><span class="card-unit">%</span>
+            </div>
+            <div class="progress-bar-wrap">
+              <div class="progress-fill purple" id="memProgressFill" style="width: 0%;"></div>
+            </div>
+            <div class="card-desc" id="memDetailsText">已用: -- / 总计: --</div>
+          </section>
+
+          <!-- Thermal Card -->
+          <section class="glass-card" id="thermalCard">
+            <div class="card-header">
+              <span class="card-label">
+                <svg viewBox="0 0 24 24"><path d="M15 13V5c0-1.66-1.34-3-3-3S9 3.34 9 5v8c-1.21.91-2 2.37-2 4 0 2.76 2.24 5 5 5s5-2.24 5-5c0-1.63-.79-3.09-2-4zm-4-8c0-.55.45-1 1-1s1 .45 1 1h-1v1h1v2h-1v1h1v2h-2V5z"/></svg>
+                系统温度
+              </span>
+            </div>
+            <div class="card-value-lg">
+              <span id="tempValue">--</span><span class="card-unit">°C</span>
+            </div>
+            <div class="progress-bar-wrap">
+              <div class="progress-fill green" id="tempProgressFill" style="width: 0%;"></div>
+            </div>
+            <div class="card-desc" id="tempSensorName">SoC / CPU 传感器</div>
+          </section>
+        </div>
+
+        <!-- Real-time Network Throughput Section -->
+        <section class="glass-card full-width" id="networkCard" style="margin-bottom: 24px;">
+          <div class="card-header">
+            <span class="card-label">
+              <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+              网络吞吐量 (实时流速)
+            </span>
+            <div class="interface-selector">
+              <select class="interface-select" id="interfaceSelect" aria-label="选择监控网卡">
+                <option value="auto">自动选择活动网卡</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="traffic-stats-container">
+            <div class="traffic-box">
+              <div class="traffic-direction">
+                <span class="traffic-dot rx"></span> 下载速率 (RX)
+              </div>
+              <div class="traffic-speed" id="rxSpeedText">0.0 <span style="font-size:12px;color:var(--text-muted);">KB/s</span></div>
+              <div class="traffic-total" id="rxTotalText">累计: 0 B</div>
+            </div>
+            <div class="traffic-box">
+              <div class="traffic-direction">
+                <span class="traffic-dot tx"></span> 上传速率 (TX)
+              </div>
+              <div class="traffic-speed" id="txSpeedText">0.0 <span style="font-size:12px;color:var(--text-muted);">KB/s</span></div>
+              <div class="traffic-total" id="txTotalText">累计: 0 B</div>
+            </div>
+          </div>
+
+          <!-- Canvas Real-time Chart -->
+          <div class="chart-wrapper">
+            <canvas id="trafficChart" width="480" height="140"></canvas>
+          </div>
+        </section>
+      </div>
+
+      <!-- 2. 设备独立视图 (Clients View) -->
+      <div id="viewClients" class="tab-view">
+        <section class="glass-card full-width" style="margin-bottom: 14px;">
+          <div class="hero-top" style="margin-bottom: 8px;">
+            <div>
+              <span class="device-badge" id="clientSummaryBadge">局域网客户端</span>
+              <h2 class="device-name" style="font-size: 20px;">在线设备管理</h2>
+            </div>
+            <span class="badge" id="clientCountText" style="font-size:12px;color:#11cdef;background:rgba(17,205,239,0.15);padding:4px 10px;border-radius:12px;">共 0 台</span>
+          </div>
+          <!-- 搜索与筛选工具栏 -->
+          <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <input type="text" id="clientSearchInput" class="form-input" placeholder="搜索 IP / MAC / 主机名..." style="padding: 8px 12px; font-size: 13px;">
+          </div>
+          <div class="filter-chips-row" style="display: flex; gap: 6px; margin-top: 10px;">
+            <button class="chip active" data-filter="all" id="filterAll">全部</button>
+            <button class="chip" data-filter="dhcp" id="filterDhcp">仅 DHCP 租约</button>
+            <button class="chip" data-filter="arp" id="filterArp">仅 ARP 邻居</button>
+          </div>
+        </section>
+
+        <!-- 独立设备列表 -->
+        <section class="client-list" id="clientListContainer">
+          <div style="text-align: center; color: var(--text-muted); padding: 30px;">
+            正在加载设备列表...
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Bottom Float Nav Bar -->
+    <nav class="bottom-bar">
+      <div class="nav-item active" id="navDashboard">
+        <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+        <span>监控</span>
+      </div>
+      <div class="nav-item" id="navClients">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16v10H4zm18 12H2v2h20v-2zM6 8v6h12V8H6z"/></svg>
+        <span>设备</span>
+      </div>
+      <div class="nav-item" id="navSettings">
+        <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        <span>设置</span>
+      </div>
+    </nav>
+
+    <!-- Settings Drawer / Modal -->
+    <div class="modal-overlay" id="settingsModal">
+      <div class="modal-content">
+        <div class="modal-drag-indicator"></div>
+        <div class="modal-header">
+          <h3 class="modal-title">路由器连接设置</h3>
+          <button class="icon-btn" id="closeSettingsBtn" aria-label="关闭设置">
+            <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+          </button>
+        </div>
+
+        <form id="settingsForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="settingHost">路由器 IP / 域名</label>
+              <input type="text" id="settingHost" class="form-input" placeholder="192.168.6.88" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="settingPort">端口</label>
+              <input type="number" id="settingPort" class="form-input" placeholder="9090" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="settingToken">认证 Token (可选)</label>
+            <input type="password" id="settingToken" class="form-input" placeholder="未开启鉴权请留空">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="settingInterval">刷新频率 (秒)</label>
+            <input type="number" id="settingInterval" class="form-input" step="0.5" min="0.5" max="10" value="1.5">
+          </div>
+
+          <button type="button" class="btn btn-secondary" id="testConnBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            测试连通性
+          </button>
+          <div class="test-result-box" id="testResultBox"></div>
+
+          <button type="submit" class="btn btn-primary" style="margin-top: 14px;">
+            保存并立即连接
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast Component -->
+    <div class="toast-msg" id="toastMsg">设置已保存</div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

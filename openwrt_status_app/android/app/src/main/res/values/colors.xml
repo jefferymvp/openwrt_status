@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="argon_primary">#5E72E4</color>
+    <color name="argon_primary_dark">#0F1222</color>
+    <color name="argon_accent">#11CDEF</color>
+    <color name="argon_background">#0F1222</color>
+</resources>

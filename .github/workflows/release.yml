@@ -72,9 +72,56 @@ jobs:
           path: dist/${{ matrix.artifact_name }}.tar.gz
           retention-days: 7
 
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.2'
+
+      - name: Copy Web Assets into Android Project
+        run: |
+          mkdir -p openwrt_status_app/android/app/src/main/assets
+          cp openwrt_status_app/index.html openwrt_status_app/android/app/src/main/assets/
+          cp openwrt_status_app/style.css openwrt_status_app/android/app/src/main/assets/
+          cp openwrt_status_app/app.js openwrt_status_app/android/app/src/main/assets/
+          cp openwrt_status_app/manifest.json openwrt_status_app/android/app/src/main/assets/
+          cp openwrt_status_app/icon.svg openwrt_status_app/android/app/src/main/assets/
+
+      - name: Build Android APK
+        working-directory: openwrt_status_app/android
+        run: |
+          # 确保全局调试密钥存在 (用于 release 包直接签名，免去用户手动签名麻烦)
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          gradle assembleRelease --stacktrace
+
+          mkdir -p ../../dist
+          cp app/build/outputs/apk/release/*.apk ../../dist/openwrt-status-app.apk
+
+      - name: Upload Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openwrt-status-app-apk
+          path: dist/openwrt-status-app.apk
+          retention-days: 7
+
   release:
     name: Create GitHub Release
-    needs: build
+    needs: [build, build-android]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
@@ -89,9 +136,9 @@ jobs:
       - name: Prepare Release Assets and Checksums
         run: |
           mkdir -p release-files
-          find release-artifacts -name "*.tar.gz" -exec mv {} release-files/ \;
+          find release-artifacts \( -name "*.tar.gz" -o -name "*.apk" \) -exec mv {} release-files/ \;
           cd release-files
-          sha256sum *.tar.gz > sha256sums.txt
+          sha256sum * > sha256sums.txt
           ls -lh
 
       - name: Publish GitHub Release

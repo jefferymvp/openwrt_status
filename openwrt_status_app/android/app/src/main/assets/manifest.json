@@ -1,0 +1,18 @@
+{
+  "name": "OpenWrt Status",
+  "short_name": "OW-Status",
+  "description": "Argon Theme Mobile Android Monitor for OpenWrt",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#14172b",
+  "theme_color": "#5e72e4",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

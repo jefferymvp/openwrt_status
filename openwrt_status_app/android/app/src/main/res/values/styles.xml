@@ -1,0 +1,10 @@
+<resources>
+    <style name="Theme.OpenWrtStatus" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/argon_primary</item>
+        <item name="colorPrimaryDark">@color/argon_primary_dark</item>
+        <item name="colorAccent">@color/argon_accent</item>
+        <item name="android:windowBackground">@color/argon_background</item>
+        <item name="android:statusBarColor">@color/argon_primary_dark</item>
+        <item name="android:navigationBarColor">@color/argon_primary_dark</item>
+    </style>
+</resources>

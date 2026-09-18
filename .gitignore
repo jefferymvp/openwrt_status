@@ -17,3 +17,11 @@ target/
 # Test artifacts
 scratch/
 tmp/
+
+# Android & Gradle artifacts
+.gradle/
+build/
+**/build/
+*.apk
+*.aab
+
