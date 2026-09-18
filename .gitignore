@@ -1,0 +1,26 @@
+# Binaries
+bin/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/openwrt-status
+/openwrt-status.exe
+
+# Test and coverage artifacts
+*.out
+*.test
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temporary files
+scratch/
+tmp/
