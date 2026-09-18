@@ -116,6 +116,31 @@
 
 ---
 
+## Python 测试客户端使用说明
+
+仓库根目录下提供了零依赖的 Python 测试脚本 [test_client.py](test_client.py)，基于标准库开发，无需安装任何第三方库即可在电脑端测试与监控路由器：
+
+### 1. 单次快速测试全量接口
+```sh
+python test_client.py -u http://192.168.1.1:9090
+```
+
+### 2. 实时动态仪表盘模式 (每 2 秒自动刷新)
+```sh
+python test_client.py -u http://192.168.1.1:9090 --watch
+```
+
+### 3. 带 Token 鉴权或测试单个接口
+```sh
+# 测试特定接口 (如 network)
+python test_client.py -u http://192.168.1.1:9090 -e network
+
+# 携带安全 Token
+python test_client.py -u http://192.168.1.1:9090 -t your_secret_token
+```
+
+---
+
 ## 快速安装与部署 (OpenWrt)
 
 ### 1. 下载对应架构二进制
