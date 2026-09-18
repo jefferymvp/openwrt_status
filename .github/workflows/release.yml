@@ -85,6 +85,9 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
@@ -102,15 +105,10 @@ jobs:
       - name: Build Android APK
         working-directory: openwrt_status_app/android
         run: |
-          # 确保全局调试密钥存在 (用于 release 包直接签名，免去用户手动签名麻烦)
-          mkdir -p ~/.android
-          if [ ! -f ~/.android/debug.keystore ]; then
-            keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          fi
-          gradle assembleRelease --stacktrace
+          gradle assembleDebug --no-daemon --stacktrace
 
           mkdir -p ../../dist
-          cp app/build/outputs/apk/release/*.apk ../../dist/openwrt-status-app.apk
+          cp app/build/outputs/apk/debug/*.apk ../../dist/openwrt-status-app.apk
 
       - name: Upload Android APK Artifact
         uses: actions/upload-artifact@v4

@@ -16,16 +16,6 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    signingConfigs {
-        release {
-            // 使用标准调试密钥签名 release 包，确保用户下载 APK 后开箱即装，免去配置证书麻烦
-            storeFile file("${System.getProperty('user.home')}/.android/debug.keystore")
-            storePassword "android"
-            keyAlias "androiddebugkey"
-            keyPassword "android"
-        }
-    }
-
     buildTypes {
         release {
             minifyEnabled false
