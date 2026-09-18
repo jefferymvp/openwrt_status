@@ -1,21 +1,47 @@
-# OpenWrt Status Backend Service
+# OpenWrt Status Backend Service (Rust Edition)
 
-专为 OpenWrt 路由器打造的轻量级、高性能系统状态监控后端服务。使用 Go 语言编写，无需任何第三方外部依赖（纯静态编译），内存占用极低（< 10MB），并通过 GitHub Actions 自动交叉编译支持目前所有的主流软路由与硬路由平台架构。
+专为 OpenWrt 路由器打造的极致轻量、高性能系统状态监控后端服务。使用 **Rust** 语言编写，具备**零运行时开销（无 GC）**、**超低内存占用（仅 1~3MB）** 与**极小二进制体积**等特点，针对主流 **x86 与 ARM** 平台提供纯静态 musl 预编译包。
 
 ---
 
 ## 特性亮点
 
-- ⚡ **极致轻量**：基于 Go 标准库 `net/http` 打造，纯静态链接，适配 OpenWrt musl-libc 环境，二进制体积小巧，运行时占用内存小于 10MB。
+- ⚡ **极致轻量**：基于 Rust 2021 + Tokio + Axum，常驻内存仅需 **1MB ~ 3MB**，CPU 开销几乎为 0，对路由器硬件零负担。
 - 🌡️ **全面指标采集**：
-  - **CPU 频率**：支持多核动态频率读取 (`/sys/devices/system/cpu/cpufreq`) 与 `/proc/cpuinfo` 降级兜底。
+  - **CPU 频率**：支持动态读取 `/sys/devices/system/cpu/cpufreq` 与 `/proc/cpuinfo` 降级兜底。
   - **系统温度**：自动扫描并读取 `thermal_zone` 及 `hwmon` 传感器摄氏度（CPU / SoC / 外围传感器）。
   - **连接客户端**：解析 dnsmasq 租约 (`/tmp/dhcp.leases`) 与 ARP 邻居表 (`/proc/net/arp`)，统计在线客户端数量并输出 IP、MAC 及主机名列表。
-  - **网络吞吐量与时间**：持续采集 `/proc/net/dev`，精确计算每个网络接口（WAN / LAN / WLAN）的毫秒时间戳与实时吞吐量（Bytes/s、KB/s、Mbps）。
+  - **网络吞吐量与时间**：Tokio 后台定时采样 `/proc/net/dev`，精确计算每个网络接口（WAN / LAN / WLAN）的毫秒时间戳与实时吞吐量（Bytes/s、KB/s、Mbps）。
   - **系统概览**：包含主机名、系统运行时间 (Uptime)、系统负载 (1/5/15) 及物理内存占用。
 - 🌐 **开箱即用**：自带全量 CORS 跨域支持，支持与任意 Web 前端、Vue/React 单页应用或 Home Assistant 等无缝对接。
-- 🔒 **可选安全认证**：支持设置 Token 鉴权（通过命令行参数 `-token` 或环境变量 `STATUS_TOKEN` 控制）。
-- 🚀 **自动化流水线**：集成 GitHub Actions，覆盖 x86_64、x86_32、ARM64、ARMv7、ARMv5、MIPSLE (MT7621等)、MIPS 大端等多架构一键构建。
+- 🔒 **可选安全认证**：支持设置 Token 鉴权（通过命令行参数 `-t / --token` 或环境变量 `STATUS_TOKEN` 控制）。
+- 🚀 **自动化流水线**：集成 GitHub Actions，覆盖 `x86_64`、`i686`、`aarch64`、`armv7` 4 大主流架构的 musl 纯静态编译。
+
+---
+
+## 本地开发与测试 (Windows / Linux / macOS)
+
+由于使用 Rust 编写，您可以直接在本地电脑上进行极速编译与测试：
+
+### 1. 语法检查与编译
+```bash
+cargo check
+cargo build
+```
+
+### 2. 本地启动服务
+```bash
+cargo run -- --port 9090
+```
+
+### 3. 使用随附 Python 客户端测试
+```bash
+# 单次快速全量测试
+python test_client.py -u http://127.0.0.1:9090
+
+# 开启实时动态监控仪表盘 (每 2 秒刷新)
+python test_client.py -u http://127.0.0.1:9090 --watch
+```
 
 ---
 
@@ -34,7 +60,7 @@
   "data": {
     "system": {
       "hostname": "OpenWrt",
-      "current_time": "2026-09-18T17:20:00.123456789+08:00",
+      "current_time": "2026-09-18T09:55:20.010046200Z",
       "uptime_seconds": 128940,
       "uptime_format": "1天 11小时 49分 0秒",
       "load_avg_1": 0.12,
@@ -46,14 +72,14 @@
       "memory_usage_percent": 22.9
     },
     "cpu": {
-      "model_name": "MediaTek MT7621AT",
+      "model_name": "x86_64",
       "cores": 4,
-      "avg_frequency_mhz": 880.0,
+      "avg_frequency_mhz": 2400.0,
       "core_list": [
-        { "core_id": 0, "frequency_mhz": 880.0 },
-        { "core_id": 1, "frequency_mhz": 880.0 },
-        { "core_id": 2, "frequency_mhz": 880.0 },
-        { "core_id": 3, "frequency_mhz": 880.0 }
+        { "core_id": 0, "frequency_mhz": 2400.0 },
+        { "core_id": 1, "frequency_mhz": 2400.0 },
+        { "core_id": 2, "frequency_mhz": 2400.0 },
+        { "core_id": 3, "frequency_mhz": 2400.0 }
       ]
     },
     "thermal": {
@@ -74,14 +100,14 @@
         {
           "ip_address": "192.168.1.105",
           "mac_address": "dd:ee:ff:44:55:66",
-          "hostname": "",
-          "expires_at": "Never",
+          "hostname": null,
+          "expires_at": null,
           "source": "arp"
         }
       ]
     },
     "network": {
-      "timestamp": "2026-09-18T17:20:00.123456789+08:00",
+      "timestamp": "2026-09-18T09:55:19.320726400Z",
       "interfaces": [
         {
           "interface": "eth0",
@@ -97,7 +123,7 @@
           "tx_total_packets": 41000,
           "rx_errors": 0,
           "tx_errors": 0,
-          "timestamp": "2026-09-18T17:20:00.123456789+08:00"
+          "timestamp": "2026-09-18T09:55:19.320726400Z"
         }
       ]
     }
@@ -116,48 +142,22 @@
 
 ---
 
-## Python 测试客户端使用说明
-
-仓库根目录下提供了零依赖的 Python 测试脚本 [test_client.py](test_client.py)，基于标准库开发，无需安装任何第三方库即可在电脑端测试与监控路由器：
-
-### 1. 单次快速测试全量接口
-```sh
-python test_client.py -u http://192.168.1.1:9090
-```
-
-### 2. 实时动态仪表盘模式 (每 2 秒自动刷新)
-```sh
-python test_client.py -u http://192.168.1.1:9090 --watch
-```
-
-### 3. 带 Token 鉴权或测试单个接口
-```sh
-# 测试特定接口 (如 network)
-python test_client.py -u http://192.168.1.1:9090 -e network
-
-# 携带安全 Token
-python test_client.py -u http://192.168.1.1:9090 -t your_secret_token
-```
-
----
-
 ## 快速安装与部署 (OpenWrt)
 
 ### 1. 下载对应架构二进制
 在 GitHub 仓库的 **Releases** 页面下载对应路由器架构的压缩包：
 
-- **x86 软路由 (64位)**: `openwrt-status-linux-amd64.tar.gz`
-- **ARM64 (如 NanoPi R2S/R4S/R5S/R6S、树莓派4/5、RK3568)**: `openwrt-status-linux-arm64.tar.gz`
-- **ARMv7 (如 斐讯K3、华硕、BCM 等)**: `openwrt-status-linux-armv7.tar.gz`
-- **MIPSLE 软浮点 (常见 MT7621、MT7620、新路由3、K2P 等)**: `openwrt-status-linux-mipsle-softfloat.tar.gz`
-- **MIPS 软浮点 (Atheros AR71xx、AR93xx 等大端平台)**: `openwrt-status-linux-mips-softfloat.tar.gz`
+- **x86 软路由 (64位)**: `openwrt-status-x86_64-musl.tar.gz`
+- **x86 软路由 (32位)**: `openwrt-status-i686-musl.tar.gz`
+- **ARM64 (如 NanoPi R2S/R4S/R5S/R6S、树莓派4/5、RK3568)**: `openwrt-status-aarch64-musl.tar.gz`
+- **ARMv7 (如 斐讯K3、华硕、BCM 等)**: `openwrt-status-armv7-musleabihf.tar.gz`
 
 ### 2. 上传并安装到 OpenWrt
 通过 SSH 或 SCP 将压缩包上传至路由器 `/tmp` 目录并解压：
 
 ```sh
 cd /tmp
-tar -zxvf openwrt-status-linux-*.tar.gz
+tar -zxvf openwrt-status-*.tar.gz
 
 # 移动二进制文件并赋予执行权限
 mv openwrt-status /usr/bin/
@@ -172,12 +172,6 @@ chmod +x /etc/init.d/openwrt-status
 /etc/init.d/openwrt-status start
 ```
 
-### 3. 验证运行状态
-使用 `curl` 即可直接测试接口：
-```sh
-curl http://127.0.0.1:9090/api/v1/status
-```
-
 ---
 
 ## 配置参数与自定义选项
@@ -186,18 +180,8 @@ curl http://127.0.0.1:9090/api/v1/status
 
 | 命令行参数 | 环境变量 | 默认值 | 说明 |
 | :--- | :--- | :--- | :--- |
-| `-port` | `STATUS_PORT` | `9090` | HTTP 服务监听端口 |
-| `-host` | `STATUS_HOST` | `0.0.0.0` | HTTP 服务监听地址 |
-| `-interval`| `STATUS_INTERVAL` | `1s` | 网卡吞吐量采样间隔 |
-| `-token` | `STATUS_TOKEN` | `""` | 访问 API 所需鉴权 Token（留空则不开启鉴权） |
-| `-version` | - | - | 查看程序版本与 Commit 信息 |
-
-> **提示**：若启用了 Token 鉴权，请求时可在 Header 中携带 `Authorization: Bearer <your-token>`，或者在 URL 查询参数中添加 `?token=<your-token>`。
-
----
-
-## GitHub Actions 自动编译发布
-
-本项目已经配置了完整的 GitHub Actions 工作流：
-1. **持续编译**：代码合并或推送到 `main` 分支时，会自动触发各架构编译并保存构建产物 Artifacts（保留 7 天）。
-2. **自动发布 Release**：只要打上版本 Tag 并推送至 GitHub（例如 `git tag v1.0.0 && git push origin v1.0.0`），GitHub Actions 会自动编译 7 大主流芯片架构的发布包，生成 SHA256 校验清单，并自动创建 GitHub Release！
+| `-p`, `--port` | `STATUS_PORT` | `9090` | HTTP 服务监听端口 |
+| `--host` | `STATUS_HOST` | `0.0.0.0` | HTTP 服务监听地址 |
+| `-i`, `--interval`| `STATUS_INTERVAL`| `1.0` | 网卡吞吐量采样间隔 (秒) |
+| `-t`, `--token` | `STATUS_TOKEN` | `""` | 访问 API 所需鉴权 Token（留空则不开启鉴权） |
+| `-V`, `--version` | - | - | 查看程序版本 |

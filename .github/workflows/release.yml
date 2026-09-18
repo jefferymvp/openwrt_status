@@ -1,4 +1,4 @@
-name: Build & Release OpenWrt Status
+name: Build & Release OpenWrt Status (Rust)
 
 on:
   push:
@@ -20,61 +20,41 @@ jobs:
       matrix:
         include:
           # x86_64 软路由
-          - goos: linux
-            goarch: amd64
-            goarm: ''
-            artifact_name: openwrt-status-linux-amd64
+          - target: x86_64-unknown-linux-musl
+            artifact_name: openwrt-status-x86_64-musl
           # x86 32位软路由
-          - goos: linux
-            goarch: 386
-            goarm: ''
-            artifact_name: openwrt-status-linux-386
+          - target: i686-unknown-linux-musl
+            artifact_name: openwrt-status-i686-musl
           # ARM64 (NanoPi R2S/R4S/R5S/R6S, 树莓派 4/5, RK3568 等)
-          - goos: linux
-            goarch: arm64
-            goarm: ''
-            artifact_name: openwrt-status-linux-arm64
+          - target: aarch64-unknown-linux-musl
+            artifact_name: openwrt-status-aarch64-musl
           # ARMv7 (斐讯 K3, 华硕 AC86U, IPQ40xx 等)
-          - goos: linux
-            goarch: arm
-            goarm: '7'
-            artifact_name: openwrt-status-linux-armv7
+          - target: armv7-unknown-linux-musleabihf
+            artifact_name: openwrt-status-armv7-musleabihf
 
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          go-version: '1.22'
-          check-latest: true
+          targets: ${{ matrix.target }}
 
-      - name: Determine Version
-        id: vars
+      - name: Install Cross
         run: |
-          BUILD_TIME=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF#refs/tags/}
-          else
-            VERSION="dev-$(git rev-parse --short HEAD)"
-          fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
+          mkdir -p ~/.cargo/bin
+          curl -sSL https://github.com/cross-rs/cross/releases/download/v0.2.5/cross-x86_64-unknown-linux-musl.tar.gz | tar -xz -C ~/.cargo/bin
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      - name: Build Binary
-        env:
-          CGO_ENABLED: 0
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          GOARM: ${{ matrix.goarm }}
+      - name: Build with Cross
         run: |
+          cross build --release --target ${{ matrix.target }}
+
+          # 准备发布归档目录
           mkdir -p dist/${{ matrix.artifact_name }}
-          go build -trimpath -ldflags="-s -w \
-            -X 'main.Version=${{ steps.vars.outputs.version }}' \
-            -X 'main.GitCommit=${{ github.sha }}' \
-            -X 'main.BuildTime=${{ steps.vars.outputs.build_time }}'" \
-            -o dist/${{ matrix.artifact_name }}/openwrt-status ./cmd/server
+          cp target/${{ matrix.target }}/release/openwrt_status dist/${{ matrix.artifact_name }}/openwrt-status
+          chmod +x dist/${{ matrix.artifact_name }}/openwrt-status
 
           # 将 OpenWrt 服务脚本一并打包放入压缩包
           cp etc/init.d/openwrt-status dist/${{ matrix.artifact_name }}/
@@ -109,7 +89,6 @@ jobs:
       - name: Prepare Release Assets and Checksums
         run: |
           mkdir -p release-files
-          # 将解压出来的 tar.gz 移动到 release-files 目录
           find release-artifacts -name "*.tar.gz" -exec mv {} release-files/ \;
           cd release-files
           sha256sum *.tar.gz > sha256sums.txt
