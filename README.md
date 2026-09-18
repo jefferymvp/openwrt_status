@@ -163,8 +163,8 @@ tar -zxvf openwrt-status-*.tar.gz
 mv openwrt-status /usr/bin/
 chmod +x /usr/bin/openwrt-status
 
-# 安装 procd 服务脚本
-mv openwrt-status /etc/init.d/openwrt-status
+# 安装 procd 服务脚本并赋予执行权限
+mv openwrt-status.init /etc/init.d/openwrt-status
 chmod +x /etc/init.d/openwrt-status
 
 # 启用开机自启并启动服务

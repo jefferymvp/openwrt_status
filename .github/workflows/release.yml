@@ -56,9 +56,9 @@ jobs:
           cp target/${{ matrix.target }}/release/openwrt_status dist/${{ matrix.artifact_name }}/openwrt-status
           chmod +x dist/${{ matrix.artifact_name }}/openwrt-status
 
-          # 将 OpenWrt 服务脚本一并打包放入压缩包
-          cp etc/init.d/openwrt-status dist/${{ matrix.artifact_name }}/
-          chmod +x dist/${{ matrix.artifact_name }}/openwrt-status
+          # 将 OpenWrt 服务脚本一并打包放入压缩包 (避免同名覆盖二进制)
+          cp etc/init.d/openwrt-status dist/${{ matrix.artifact_name }}/openwrt-status.init
+          chmod +x dist/${{ matrix.artifact_name }}/openwrt-status.init
 
           # 打包为 .tar.gz
           cd dist
