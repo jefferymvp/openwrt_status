@@ -13,9 +13,20 @@
   - **连接客户端**：解析 dnsmasq 租约 (`/tmp/dhcp.leases`) 与 ARP 邻居表 (`/proc/net/arp`)，统计在线客户端数量并输出 IP、MAC 及主机名列表。
   - **网络吞吐量与时间**：Tokio 后台定时采样 `/proc/net/dev`，精确计算每个网络接口（WAN / LAN / WLAN）的毫秒时间戳与实时吞吐量（Bytes/s、KB/s、Mbps）。
   - **系统概览**：包含主机名、系统运行时间 (Uptime)、系统负载 (1/5/15) 及物理内存占用。
+- 📱 **配套移动端 App**：提供 Argon 现代化磨砂玻璃主题风格的 Web / Android APK 应用，支持自定义主机/端口连接，监控仪表盘与在线设备管理独立展示。
 - 🌐 **开箱即用**：自带全量 CORS 跨域支持，支持与任意 Web 前端、Vue/React 单页应用或 Home Assistant 等无缝对接。
 - 🔒 **可选安全认证**：支持设置 Token 鉴权（通过命令行参数 `-t / --token` 或环境变量 `STATUS_TOKEN` 控制）。
-- 🚀 **自动化流水线**：集成 GitHub Actions，覆盖 `x86_64`、`i686`、`aarch64`、`armv7` 4 大主流架构的 musl 纯静态编译。
+- 🚀 **自动化流水线**：集成 GitHub Actions，覆盖 `x86_64`、`i686`、`aarch64`、`armv7` 4 大主流架构的 musl 纯静态编译以及 Android APK 构建发布。
+
+---
+
+## 📱 界面预览 (Argon 风格客户端)
+
+配套提供 Argon 现代化质感主题的移动端 Web 与 Android 客户端，将**监控仪表盘**与**设备列表**独立分屏展示，支持配置路由器 IP/端口测试连通性，支持设备即时搜索与分类筛选：
+
+| 仪表盘监控页 (`main.jpg`) | 在线设备管理页 (`device.jpg`) |
+| :-----------------------: | :--------------------------: |
+| <img src="snapshot/main.jpg" width="360" alt="监控仪表盘"/> | <img src="snapshot/device.jpg" width="360" alt="设备列表与筛选"/> |
 
 ---
 
@@ -151,6 +162,7 @@ python test_client.py -u http://127.0.0.1:9090 --watch
 - **x86 软路由 (32位)**: `openwrt-status-i686-musl.tar.gz`
 - **ARM64 (如 NanoPi R2S/R4S/R5S/R6S、树莓派4/5、RK3568)**: `openwrt-status-aarch64-musl.tar.gz`
 - **ARMv7 (如 斐讯K3、华硕、BCM 等)**: `openwrt-status-armv7-musleabihf.tar.gz`
+- **安卓客户端 (Android App)**: `openwrt-status-app.apk`
 
 ### 2. 上传并安装到 OpenWrt
 通过 SSH 或 SCP 将压缩包上传至路由器 `/tmp` 目录并解压：
