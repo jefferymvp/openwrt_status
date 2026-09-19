@@ -11,7 +11,7 @@ mod server;
 #[derive(Parser, Debug)]
 #[command(
     name = "openwrt_status",
-    version = "1.0.0",
+    version,
     about = "Lightweight OpenWrt System Status API Backend written in Rust"
 )]
 struct Args {
