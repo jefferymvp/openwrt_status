@@ -23,8 +23,15 @@ import json
 import os
 import sys
 import time
-import urllib.error
 import urllib.request
+
+# 解决 Windows 控制台默认 GBK 导致 emoji 报错的问题
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 
 class OpenWrtClient:
@@ -79,6 +86,39 @@ class OpenWrtClient:
                 "elapsed_ms": 0,
                 "error": f"请求异常: {str(e)}",
             }
+
+    def exec_stream(self, command: str, timeout: float = 120.0):
+        """调用 POST /api/v1/exec 接口，流式接收执行状态心跳与最终执行结果"""
+        url = f"{self.base_url}/api/v1/exec"
+        headers = {
+            "User-Agent": "OpenWrt-Status-PythonClient/1.0",
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream, application/json",
+        }
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+
+        payload = json.dumps({"command": command, "timeout": int(timeout)}).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+
+        try:
+            with urllib.request.urlopen(req, timeout=timeout + 15) as resp:
+                for line in resp:
+                    line_str = line.decode("utf-8", errors="replace").strip()
+                    if not line_str or line_str.startswith(":"):
+                        continue
+                    if line_str.startswith("data:"):
+                        raw_json = line_str[5:].strip()
+                        try:
+                            item = json.loads(raw_json)
+                            yield item
+                        except Exception:
+                            yield {"type": "raw", "data": raw_json}
+        except urllib.error.HTTPError as e:
+            err_body = e.read().decode("utf-8", errors="ignore")
+            yield {"type": "error", "error": f"HTTP {e.code}: {e.reason}", "body": err_body}
+        except Exception as e:
+            yield {"type": "error", "error": f"请求异常: {str(e)}"}
 
 
 def print_banner(title: str):
@@ -244,6 +284,50 @@ def run_watch_mode(client: OpenWrtClient, interval: float = 2.0):
             break
 
 
+def run_exec_test(client: OpenWrtClient, command: str, timeout: float = 120.0):
+    """测试命令执行接口并实时打印每5秒的心跳与最终结果"""
+    print_banner(f"远程命令执行测试: {command}")
+    print(f"目标服务: {client.base_url}")
+    print(f"设定超时: {timeout} 秒")
+    print("正在提交命令并等待执行流式输出 (期间每5秒服务端将发送一次心跳保活)...")
+    print("-" * 60)
+
+    start_time = time.perf_counter()
+    for event in client.exec_stream(command=command, timeout=timeout):
+        event_type = event.get("type")
+        if event_type == "status":
+            elapsed = event.get("elapsed_seconds", 0)
+            msg = event.get("message", "")
+            print(f"⏱️ [服务端心跳保活 +{elapsed}s] {msg}")
+        elif event_type == "result":
+            exit_code = event.get("exit_code")
+            success = event.get("success")
+            stdout = event.get("stdout", "")
+            stderr = event.get("stderr", "")
+            elapsed = event.get("elapsed_seconds", 0.0)
+            total_real = time.perf_counter() - start_time
+            print("-" * 60)
+            if success:
+                print(f"✅ 执行成功! 退出码: {exit_code}, 服务端耗时: {elapsed:.2f}s (客户端总耗时: {total_real:.2f}s)")
+            else:
+                print(f"❌ 执行失败! 退出码: {exit_code}, 服务端耗时: {elapsed:.2f}s")
+
+            if stdout:
+                print("\n[STDOUT 标准输出]:")
+                print(stdout.rstrip())
+            if stderr:
+                print("\n[STDERR 错误输出]:")
+                print(stderr.rstrip())
+            return
+        elif event_type == "error":
+            print(f"\n❌ [服务端报错]: {event.get('error') or event.get('message')}")
+            if "body" in event:
+                print(f"详情: {event['body']}")
+            return
+        else:
+            print(f"ℹ️ [原始消息]: {event}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="OpenWrt 状态监控后端 Python 测试客户端")
     parser.add_argument(
@@ -278,11 +362,27 @@ def main():
         default=2.0,
         help="动态监控刷新时间间隔 (秒，默认: 2.0)",
     )
+    parser.add_argument(
+        "-c",
+        "--cmd",
+        "--exec",
+        dest="command",
+        default=None,
+        help="在服务端执行指定命令并实时接收状态心跳与执行结果",
+    )
+    parser.add_argument(
+        "--cmd-timeout",
+        type=float,
+        default=120.0,
+        help="命令执行超时时间 (秒，默认: 120.0)",
+    )
 
     args = parser.parse_args()
     client = OpenWrtClient(base_url=args.url, token=args.token)
 
-    if args.watch:
+    if args.command:
+        run_exec_test(client, command=args.command, timeout=args.cmd_timeout)
+    elif args.watch:
         run_watch_mode(client, interval=args.interval)
     else:
         run_single_test(client, endpoint=args.endpoint)

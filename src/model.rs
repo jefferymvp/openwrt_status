@@ -121,3 +121,35 @@ pub struct AllStatusResponse {
     pub clients: ClientStatus,
     pub network: NetworkStatus,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExecRequest {
+    pub command: String,
+    #[serde(default)]
+    pub timeout: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum ExecStreamMessage {
+    #[serde(rename = "status")]
+    Status {
+        status: String,
+        elapsed_seconds: u64,
+        message: String,
+    },
+    #[serde(rename = "result")]
+    Result {
+        status: String,
+        exit_code: i32,
+        success: bool,
+        stdout: String,
+        stderr: String,
+        elapsed_seconds: f64,
+    },
+    #[serde(rename = "error")]
+    Error {
+        status: String,
+        message: String,
+    },
+}

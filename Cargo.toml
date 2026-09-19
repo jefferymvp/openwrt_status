@@ -1,6 +1,6 @@
 [package]
 name = "openwrt_status"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2021"
 authors = ["jefferymvp"]
 description = "Lightweight OpenWrt System Status API Backend written in Rust"
@@ -16,6 +16,8 @@ chrono = { version = "0.4", features = ["serde"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 regex = "1.10"
+tokio-stream = { version = "0.1", features = ["sync"] }
+futures-util = "0.3"
 
 [profile.release]
 opt-level = "z"     # 体积优化

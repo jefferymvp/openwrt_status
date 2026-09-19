@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icon.svg">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2.3">
 </head>
 <body>
 
@@ -39,6 +39,18 @@
 
     <!-- Main Content Container -->
     <main id="mainView">
+      <!-- 下拉刷新指示器 (监控与设备视图共享) -->
+      <div class="pull-refresh-container" id="pullRefreshContainer">
+        <div class="pull-refresh-pill">
+          <div class="pull-refresh-icon" id="pullRefreshIcon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 4v16m0 0l-5-5m5 5l5-5"/>
+            </svg>
+          </div>
+          <span class="pull-refresh-text" id="pullRefreshText">下拉刷新</span>
+        </div>
+      </div>
+
       <!-- 1. 监控独立视图 (Dashboard View) -->
       <div id="viewDashboard" class="tab-view active">
         <!-- Device Hero Card -->
@@ -187,6 +199,108 @@
           </div>
         </section>
       </div>
+
+      <!-- 3. 命令执行独立视图 (Commands View) -->
+      <div id="viewCommands" class="tab-view">
+        <!-- 命令配置与选择卡片 -->
+        <section class="glass-card full-width" style="margin-bottom: 14px;">
+          <div class="hero-top" style="margin-bottom: 8px;">
+            <div>
+              <span class="device-badge" id="cmdServerBadge">OpenWrt 远程命令执行</span>
+              <h2 class="device-name" style="font-size: 20px;">命令控制台</h2>
+            </div>
+            <span class="badge" id="cmdStatusBadge" style="font-size:12px;color:var(--color-cyan);background:rgba(17,205,239,0.15);padding:4px 10px;border-radius:12px;">待执行</span>
+          </div>
+
+          <!-- 预设命令选择与管理 -->
+          <div class="form-group" style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label class="form-label" for="savedCommandSelect" style="margin-bottom: 0;">常用预设命令</label>
+              <div class="cmd-actions-mini">
+                <button type="button" class="btn-text-action" id="newCmdBtn" title="另存当前命令为新预设">+ 新增预设</button>
+                <button type="button" class="btn-text-action danger" id="deleteCmdBtn" title="删除当前预设">删除当前</button>
+              </div>
+            </div>
+            <select class="form-input" id="savedCommandSelect" aria-label="选择预设命令" style="margin-bottom: 8px;"></select>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="cmdPresetName" class="form-input" placeholder="预设展示名称 (可直接修改)" style="font-size: 12px; padding: 6px 10px;">
+              <button type="button" class="btn-text-action" id="saveCmdNameBtn" style="white-space: nowrap; padding: 0 10px;">保存名称</button>
+            </div>
+          </div>
+
+          <!-- 命令输入框 -->
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label class="form-label" for="commandInput">要执行的 Shell 命令</label>
+            <textarea id="commandInput" class="form-input" rows="2" placeholder="例如: ping -c 4 223.5.5.5 或 df -h" style="font-family: monospace; font-size: 13px; resize: vertical;"></textarea>
+          </div>
+
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <div style="flex: 1;">
+              <label class="form-label" for="commandTimeout" style="font-size: 11px; margin-bottom: 4px;">超时限制 (秒)</label>
+              <input type="number" id="commandTimeout" class="form-input" value="60" min="5" max="300" style="padding: 6px 10px; font-size: 13px;">
+            </div>
+            <div style="flex: 2; display: flex; gap: 8px; margin-top: 18px;">
+              <button type="button" class="btn btn-primary" id="runCommandBtn" style="padding: 9px 16px;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="margin-right: 6px;"><path d="M8 5v14l11-7z"/></svg>
+                执行命令
+              </button>
+              <button type="button" class="btn btn-secondary" id="stopCommandBtn" style="display: none; padding: 9px 12px; background: rgba(245, 54, 92, 0.2); color: #f5365c; border-color: rgba(245, 54, 92, 0.4);">
+                中止
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 统计区卡片 (Statistics Area) -->
+        <section class="glass-card full-width" style="margin-bottom: 14px;">
+          <div class="card-header">
+            <span class="card-label">
+              <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+              执行统计看板
+            </span>
+            <span class="card-desc" id="cmdHeartbeatBadge">心跳保活: 0 次</span>
+          </div>
+
+          <div style="display: flex; align-items: baseline; gap: 6px; margin: 6px 0 12px 0;">
+            <div class="card-value-lg" id="cmdElapsedTime" style="font-size: 32px; font-family: monospace;">0.00</div>
+            <span class="card-unit" style="font-size: 16px;">秒 (耗时)</span>
+          </div>
+
+          <div class="hero-stats-grid" style="padding-top: 10px; border-top: 1px solid var(--card-border);">
+            <div class="hero-stat-item">
+              <span class="hero-stat-label">退出状态码</span>
+              <span class="hero-stat-value" id="cmdExitCodeText" style="font-family: monospace;">--</span>
+            </div>
+            <div class="hero-stat-item">
+              <span class="hero-stat-label">防超时心跳</span>
+              <span class="hero-stat-value" id="cmdHeartbeatText">每 5s 自动保活</span>
+            </div>
+            <div class="hero-stat-item">
+              <span class="hero-stat-label">当前运行状态</span>
+              <span class="hero-stat-value" id="cmdDetailStatusText">就绪</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 终端结果区卡片 (Terminal Result Area) -->
+        <section class="glass-card full-width" style="margin-bottom: 24px; padding: 0; overflow: hidden;">
+          <div class="terminal-header">
+            <div class="terminal-dots">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+              <span class="terminal-title">SERVER OUTPUT CONSOLE</span>
+            </div>
+            <div class="terminal-actions">
+              <button type="button" class="terminal-action-btn" id="copyOutputBtn" title="复制结果">复制</button>
+              <button type="button" class="terminal-action-btn" id="clearOutputBtn" title="清空屏幕">清屏</button>
+            </div>
+          </div>
+          <div class="terminal-body">
+            <pre class="terminal-pre" id="terminalOutput">等待提交执行命令...</pre>
+          </div>
+        </section>
+      </div>
     </main>
 
     <!-- Bottom Float Nav Bar -->
@@ -199,9 +313,9 @@
         <svg viewBox="0 0 24 24"><path d="M4 6h16v10H4zm18 12H2v2h20v-2zM6 8v6h12V8H6z"/></svg>
         <span>设备</span>
       </div>
-      <div class="nav-item" id="navSettings">
-        <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-        <span>设置</span>
+      <div class="nav-item" id="navCommands">
+        <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zm-12-3l3.5-3.5L8 8l1.41-1.41L14.33 11.5l-4.92 4.91L8 15zm6 0h4v2h-4v-2z"/></svg>
+        <span>命令</span>
       </div>
     </nav>
 
@@ -217,6 +331,24 @@
         </div>
 
         <form id="settingsForm">
+          <!-- Schema 方案选择与管理工具栏 -->
+          <div class="form-group" style="background: rgba(255, 255, 255, 0.03); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--card-border); margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <label class="form-label" for="schemaSelect" style="margin-bottom: 0; font-weight: 700; color: var(--color-cyan);">配置方案 (Schema)</label>
+              <div class="cmd-actions-mini">
+                <button type="button" class="btn-text-action" id="newSchemaBtn">+ 新建</button>
+                <button type="button" class="btn-text-action danger" id="deleteSchemaBtn">删除</button>
+              </div>
+            </div>
+            <select class="form-input" id="schemaSelect" aria-label="选择服务器方案" style="margin-bottom: 8px;"></select>
+            <!-- 方案快速切换胶囊卡片一览 -->
+            <div class="schema-capsule-list" id="schemaCapsuleList"></div>
+            <div>
+              <label class="form-label" for="settingSchemaName" style="font-size: 11px;">方案名称 (便于区分不同路由器)</label>
+              <input type="text" id="settingSchemaName" class="form-input" placeholder="例如: 家中主路由" required>
+            </div>
+          </div>
+
           <div class="form-row">
             <div class="form-group">
               <label class="form-label" for="settingHost">路由器 IP / 域名</label>
@@ -251,10 +383,42 @@
       </div>
     </div>
 
+    <!-- Device Rename Modal (设备自定义命名与备注) -->
+    <div class="modal-overlay" id="deviceRenameModal">
+      <div class="modal-content" style="max-width: 440px;">
+        <div class="modal-drag-indicator"></div>
+        <div class="modal-header">
+          <h3 class="modal-title">设置设备备注名称</h3>
+          <button class="icon-btn" id="closeDeviceRenameBtn" aria-label="关闭">
+            <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+          </button>
+        </div>
+
+        <div class="rename-device-meta">
+          <div class="rename-meta-item"><span>原始主机名</span> <strong id="renameOriginalHost">--</strong></div>
+          <div class="rename-meta-item"><span>分配 IP</span> <strong id="renameDeviceIp">--</strong></div>
+          <div class="rename-meta-item"><span>物理 MAC</span> <strong id="renameDeviceMac">--</strong></div>
+        </div>
+
+        <form id="deviceRenameForm">
+          <input type="hidden" id="renameTargetMac">
+          <div class="form-group">
+            <label class="form-label" for="deviceAliasInput">自定义备注名称 (便于记忆与搜索)</label>
+            <input type="text" id="deviceAliasInput" class="form-input" placeholder="例如: 客厅电视 / 我的iPhone / 群晖NAS" maxlength="32" required autofocus>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 16px;">
+            <button type="button" class="btn btn-secondary" id="clearDeviceAliasBtn" style="margin-top:0; flex: 1;">清除备注</button>
+            <button type="submit" class="btn btn-primary" style="flex: 1.4;">保存名称</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Toast Component -->
     <div class="toast-msg" id="toastMsg">设置已保存</div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2.3"></script>
 </body>
 </html>

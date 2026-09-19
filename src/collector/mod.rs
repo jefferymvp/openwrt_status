@@ -6,7 +6,7 @@ pub mod thermal;
 
 pub use client::get_client_status;
 pub use cpu::get_cpu_status;
-pub use network::{get_network_status, init_network_sampler};
+pub use network::{get_network_status, init_network_sampler, touch_client_activity};
 pub use system::get_system_info;
 pub use thermal::get_thermal_status;
 
